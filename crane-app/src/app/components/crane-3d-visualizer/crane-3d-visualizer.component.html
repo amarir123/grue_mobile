@@ -1,0 +1,31 @@
+<div class="visualizer-container">
+  <canvas #rendererCanvas class="canvas-3d"></canvas>
+
+  <!-- Overlay HUD Information -->
+  <div class="hud-overlay">
+    <div class="hud-pill angle-pill">
+      <ion-icon name="compass-outline"></ion-icon>
+      <span>Boom: <strong>{{ boomAngleDeg }}°</strong></span>
+    </div>
+    <div class="hud-pill length-pill">
+      <ion-icon name="resize-outline"></ion-icon>
+      <span>Length: <strong>{{ boomLengthM }}m</strong></span>
+    </div>
+    <div class="hud-pill radius-pill">
+      <ion-icon name="navigate-outline"></ion-icon>
+      <span>Radius: <strong>{{ radiusM }}m</strong></span>
+    </div>
+    <div class="hud-pill height-pill">
+      <ion-icon name="arrow-up-circle-outline"></ion-icon>
+      <span>Height: <strong>{{ liftHeightM }}m</strong></span>
+    </div>
+
+    <button class="reset-cam-btn" (click)="resetView()" title="Reset Camera View">
+      <ion-icon name="videocam-outline"></ion-icon> Reset View
+    </button>
+  </div>
+
+  <div class="touch-hint">
+    <span><ion-icon name="hand-left-outline"></ion-icon> Drag to orbit 360° • Scroll/Pinch to zoom</span>
+  </div>
+</div>

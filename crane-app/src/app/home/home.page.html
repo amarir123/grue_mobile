@@ -1,0 +1,274 @@
+<ion-header [translucent]="true" class="ion-no-border studio-header">
+  <div class="top-nav-bar">
+    <div class="brand-left">
+      <ion-icon name="hardware-chip-outline" class="brand-icon"></ion-icon>
+      <span class="brand-title">CranePro 3D Studio</span>
+      <span class="model-tag">{{ crane.name }} (50T Capacity)</span>
+    </div>
+
+    <!-- Center Mode Switcher -->
+    <div class="mode-tabs">
+      <button [class.active]="currentSegment === 'calculator'" (click)="currentSegment = 'calculator'">
+        <ion-icon name="cube-outline"></ion-icon> 3D Viewport
+      </button>
+      <button [class.active]="currentSegment === 'chart'" (click)="currentSegment = 'chart'">
+        <ion-icon name="grid-outline"></ion-icon> Load Chart (ISO 4305)
+      </button>
+      <button [class.active]="currentSegment === 'spec'" (click)="currentSegment = 'spec'">
+        <ion-icon name="information-circle-outline"></ion-icon> Specs
+      </button>
+    </div>
+
+    <!-- Right Controls -->
+    <div class="header-right-actions">
+      <!-- Toggle Floating Config Panel button -->
+      <button 
+        *ngIf="currentSegment === 'calculator'"
+        class="toggle-panel-btn" 
+        [class.active]="isPanelOpen" 
+        (click)="isPanelOpen = !isPanelOpen"
+        title="Toggle Configuration Panel">
+        <ion-icon name="options-outline"></ion-icon>
+        <span>Parameters</span>
+      </button>
+    </div>
+  </div>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="studio-content">
+  <!-- VIEWPORT 3D (FULL SCREEN BLENDER STYLE) -->
+  <div *ngIf="currentSegment === 'calculator'" class="blender-viewport">
+    
+    <!-- 3D Canvas Background (Takes 100% of the screen) -->
+    <div class="canvas-fullscreen">
+      <app-crane-3d-visualizer
+        [boomLengthM]="calcResult?.bestBoomLengthM || 20.2"
+        [boomAngleDeg]="calcResult?.boomAngleDeg || 60"
+        [radiusM]="radiusM"
+        [liftHeightM]="liftHeightM"
+        [loadWeightKg]="(loadWeightTons || 0) * 1000"
+        [outriggerSpan]="outriggerType"
+        [status]="calcResult?.status || 'safe'">
+      </app-crane-3d-visualizer>
+    </div>
+
+    <!-- Viewport Info (Blender Top-Left text) -->
+    <div class="viewport-info-tag">
+      <div class="info-line strong">User Perspective • SANY STC500BEV</div>
+      <div class="info-line">Counterweight: 10.5t • Outriggers: {{ outriggerType }}</div>
+    </div>
+
+    <!-- Bottom Telemetry HUD Bar (Glassmorphic) -->
+    <div class="bottom-telemetry-hud" *ngIf="calcResult">
+      <div class="hud-stat">
+        <span class="label">BOOM ANGLE</span>
+        <span class="val">{{ calcResult.boomAngleDeg || '--' }}°</span>
+      </div>
+      <div class="hud-stat">
+        <span class="label">BOOM LENGTH</span>
+        <span class="val">{{ calcResult.bestBoomLengthM || '--' }}m</span>
+      </div>
+      <div class="hud-stat">
+        <span class="label">HOOK HEIGHT</span>
+        <span class="val">{{ calcResult.hookHeightM || '--' }}m</span>
+      </div>
+      <div class="hud-stat">
+        <span class="label">WORKING RADIUS</span>
+        <span class="val">{{ radiusM }}m</span>
+      </div>
+      <div class="hud-stat" [ngClass]="calcResult.status">
+        <span class="label">CAPACITY LOAD</span>
+        <span class="val highlight">{{ calcResult.utilizationPercent !== null ? calcResult.utilizationPercent + '%' : 'N/A' }}</span>
+      </div>
+    </div>
+
+    <!-- FLOATING CONFIGURATION WINDOW (Glassmorphic Draggable/Floating style) -->
+    <div class="floating-config-window" [class.collapsed]="!isPanelOpen">
+      <!-- Window Header Bar -->
+      <div class="window-header">
+        <div class="window-title">
+          <ion-icon name="options-outline"></ion-icon>
+          <span>Mission Parameters</span>
+        </div>
+        <div class="window-actions">
+          <button class="win-btn" (click)="isPanelOpen = !isPanelOpen">
+            <ion-icon [name]="isPanelOpen ? 'chevron-up-outline' : 'chevron-down-outline'"></ion-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Window Content (Collapsible) -->
+      <div class="window-body" *ngIf="isPanelOpen">
+        
+        <!-- Status Alert Banner -->
+        <div *ngIf="calcResult" class="floating-status-banner" [ngClass]="calcResult.status">
+          <div class="f-icon">
+            <ion-icon *ngIf="calcResult.status === 'safe'" name="checkmark-circle"></ion-icon>
+            <ion-icon *ngIf="calcResult.status === 'warning'" name="alert-circle"></ion-icon>
+            <ion-icon *ngIf="calcResult.status === 'danger' || calcResult.status === 'overload' || calcResult.status === 'out_of_range'" name="close-circle"></ion-icon>
+          </div>
+          <div class="f-text">
+            <strong>{{ calcResult.status === 'safe' ? 'Safe Lift' : calcResult.status === 'warning' ? 'Caution' : 'Overload' }}</strong>
+            <p>{{ calcResult.message }}</p>
+          </div>
+        </div>
+
+        <!-- Sliders & Inputs -->
+        <div class="control-group">
+          <div class="control-row">
+            <span class="c-label">Load Weight</span>
+            <span class="c-val weight">{{ loadWeightTons }} Ton <em>({{ loadWeightTons * 1000 | number }} kg)</em></span>
+          </div>
+          <ion-range min="0.5" max="50" step="0.5" [(ngModel)]="loadWeightTons" (ionChange)="recalculate()" color="primary" [pin]="true">
+            <ion-label slot="start">0.5T</ion-label>
+            <ion-label slot="end">50T</ion-label>
+          </ion-range>
+        </div>
+
+        <div class="control-group">
+          <div class="control-row">
+            <span class="c-label">Working Radius</span>
+            <span class="c-val radius">{{ radiusM }} Meters</span>
+          </div>
+          <ion-range min="3" max="40" step="0.5" [(ngModel)]="radiusM" (ionChange)="recalculate()" color="secondary" [pin]="true">
+            <ion-label slot="start">3m</ion-label>
+            <ion-label slot="end">40m</ion-label>
+          </ion-range>
+        </div>
+
+        <div class="control-group">
+          <div class="control-row">
+            <span class="c-label">Hook Lift Height</span>
+            <span class="c-val height">{{ liftHeightM }} Meters</span>
+          </div>
+          <ion-range min="0" max="60" step="1" [(ngModel)]="liftHeightM" (ionChange)="recalculate()" color="tertiary" [pin]="true">
+            <ion-label slot="start">0m</ion-label>
+            <ion-label slot="end">60m</ion-label>
+          </ion-range>
+        </div>
+
+        <div class="control-group">
+          <div class="control-row">
+            <span class="c-label">Outrigger Span</span>
+          </div>
+          <ion-segment [(ngModel)]="outriggerType" (ionChange)="onOutriggerChange()" mode="ios" class="mini-outrigger">
+            <ion-segment-button value="100%">
+              <ion-label>100% (7.3m)</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="50%">
+              <ion-label>50% (4.9m)</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+        </div>
+
+        <!-- Alternative options if available -->
+        <div *ngIf="calcResult && calcResult.allEligibleOptions.length > 1" class="mini-alt-options">
+          <span class="alt-label">Available Boom Lengths:</span>
+          <div class="pills-row">
+            <button 
+              *ngFor="let opt of calcResult.allEligibleOptions" 
+              class="mini-pill"
+              [class.active]="opt.boomLengthM === calcResult.bestBoomLengthM"
+              (click)="selectOption(opt)">
+              {{ opt.boomLengthM }}m ({{ opt.utilizationPercent }}%)
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TAB 2: FULL LOAD CHART VIEW -->
+  <div *ngIf="currentSegment === 'chart'" class="content-container">
+    <ion-card class="chart-card">
+      <ion-card-header>
+        <div class="chart-header-row">
+          <div>
+            <ion-card-title>Official Load Chart (ISO 4305)</ion-card-title>
+            <ion-card-subtitle>{{ crane.name }} - Telescopic Boom (Unit: kg)</ion-card-subtitle>
+          </div>
+          <ion-segment [(ngModel)]="chartOutriggerFilter" (ionChange)="onChartFilterChange()" mode="ios" class="mini-segment">
+            <ion-segment-button value="100%">100% Span</ion-segment-button>
+            <ion-segment-button value="50%">50% Span</ion-segment-button>
+          </ion-segment>
+        </div>
+      </ion-card-header>
+
+      <ion-card-content class="table-card-content">
+        <div class="table-scroll">
+          <table class="crane-table">
+            <thead>
+              <tr>
+                <th class="sticky-col">Radius (m)</th>
+                <th *ngFor="let b of activeConfig.boomLengths">{{ b }}m</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of activeConfig.chart" [class.highlight-row]="radiusM === row.radius">
+                <td class="sticky-col radius-cell">{{ row.radius }}</td>
+                <td 
+                  *ngFor="let b of activeConfig.boomLengths"
+                  [class.selected-cell]="isCurrentSelectedCell(row.radius, b)"
+                  [class.empty-val]="!row.capacities[b.toString()]">
+                  {{ row.capacities[b.toString()] ? (row.capacities[b.toString()] | number) : '-' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- TAB 3: SPECIFICATIONS -->
+  <div *ngIf="currentSegment === 'spec'" class="content-container">
+    <ion-card class="spec-card">
+      <ion-card-header>
+        <ion-card-title>{{ crane.name }} Specifications</ion-card-title>
+        <ion-card-subtitle>Pure Electric Truck Crane - 50 Ton Capacity</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-list lines="inset">
+          <ion-item>
+            <ion-label>Maximum Rated Capacity</ion-label>
+            <ion-note slot="end">50,000 kg (50 Ton)</ion-note>
+          </ion-item>
+          <ion-item>
+            <ion-label>Base Boom Length</ion-label>
+            <ion-note slot="end">11.7 m</ion-note>
+          </ion-item>
+          <ion-item>
+            <ion-label>Fully Extended Main Boom</ion-label>
+            <ion-note slot="end">45.5 m</ion-note>
+          </ion-item>
+          <ion-item>
+            <ion-label>Maximum Tip Height (Boom + Jib)</ion-label>
+            <ion-note slot="end">61.5 m</ion-note>
+          </ion-item>
+          <ion-item>
+            <ion-label>Fixed Jib Lengths</ion-label>
+            <ion-note slot="end">9.2 m / 16.0 m (0°, 15°, 30°)</ion-note>
+          </ion-item>
+          <ion-item>
+            <ion-label>Counterweight</ion-label>
+            <ion-note slot="end">10.5 Ton (10,500 kg)</ion-note>
+          </ion-item>
+          <ion-item>
+            <ion-label>Outrigger Span (Full / Inter.)</ion-label>
+            <ion-note slot="end">7.3 m / 4.9 m</ion-note>
+          </ion-item>
+          <ion-item>
+            <ion-label>Battery System</ion-label>
+            <ion-note slot="end">282 kWh CATL LFP Battery</ion-note>
+          </ion-item>
+          <ion-item>
+            <ion-label>Calculation Standard</ion-label>
+            <ion-note slot="end">ISO 4305 / EN 13000</ion-note>
+          </ion-item>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+  </div>
+</ion-content>

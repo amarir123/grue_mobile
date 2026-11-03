@@ -1,0 +1,96 @@
+.visualizer-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 380px;
+  background: radial-gradient(circle at center, #1a2332 0%, #0d121c 100%);
+  border-radius: 14px;
+  overflow: hidden;
+
+  .canvas-3d {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: grab;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  .hud-overlay {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    pointer-events: none;
+
+    .hud-pill {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 12px;
+      color: #e2e8f0;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+
+      ion-icon {
+        color: #38bdf8;
+        font-size: 14px;
+      }
+
+      strong {
+        color: #ffffff;
+      }
+    }
+
+    .reset-cam-btn {
+      pointer-events: auto;
+      margin-left: auto;
+      background: rgba(56, 189, 248, 0.2);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: #38bdf8;
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+
+      &:hover {
+        background: rgba(56, 189, 248, 0.4);
+        transform: scale(1.03);
+      }
+    }
+  }
+
+  .touch-hint {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 12px;
+    padding: 3px 10px;
+    font-size: 10px;
+    color: #94a3b8;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    ion-icon {
+      font-size: 12px;
+    }
+  }
+}
