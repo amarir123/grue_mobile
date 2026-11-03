@@ -42,6 +42,7 @@ export class Crane3dVisualizerComponent implements OnInit, OnChanges, OnDestroy 
   // PBR Materials
   private matSanyRedGloss!: THREE.MeshStandardMaterial;
   private matSanyRedPlain!: THREE.MeshStandardMaterial;
+  private matBoomSections: THREE.MeshStandardMaterial[] = [];
   private matSanyYellowCab!: THREE.MeshStandardMaterial;
   private matChassisCharcoal!: THREE.MeshStandardMaterial;
   private matDarkMetal!: THREE.MeshStandardMaterial;
@@ -165,18 +166,40 @@ export class Crane3dVisualizerComponent implements OnInit, OnChanges, OnDestroy 
 
     // 1. SANY Red High-Gloss Boom Material with Logo
     this.matSanyRedGloss = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      metalness: 0.1,
-      roughness: 0.3,
-      map: boomLogoTex
+      color: 0xeb2612,
+      metalness: 0.15,
+      roughness: 0.28
     });
 
-    // Plain SANY Red (without text, for intermediate sections)
+    // Plain SANY Red (for boom head nose & fittings)
     this.matSanyRedPlain = new THREE.MeshStandardMaterial({
       color: 0xeb2612,
       metalness: 0.15,
-      roughness: 0.3
+      roughness: 0.28
     });
+
+    // Load High-Res Realistic Sany Boom Textures for each telescoping stage
+    const baseTex = texLoader.load('assets/boom_section_base.png');
+    this.matBoomSections = [
+      new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        map: baseTex,
+        metalness: 0.18,
+        roughness: 0.28
+      })
+    ];
+
+    for (let s = 1; s <= 4; s++) {
+      const secTex = texLoader.load(`assets/boom_section_${s}.png`);
+      this.matBoomSections.push(
+        new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          map: secTex,
+          metalness: 0.2,
+          roughness: 0.3
+        })
+      );
+    }
 
     // 2. Grille with SANY Badge
     const matGrilleBadge = new THREE.MeshStandardMaterial({
@@ -719,13 +742,12 @@ export class Crane3dVisualizerComponent implements OnInit, OnChanges, OnDestroy 
       const width = 1.35 - i * 0.12;
       const height = 1.55 - i * 0.12;
 
-      // Rounded U-Profile shape with bevelled appearance
+      // Realistic U-Profile telescopic boom section
       const secGeo = new THREE.BoxGeometry(width, height, sectionLength);
-      const isBase = (i === 0);
-      // Inner telescopic boom sections have the realistic metallic striped guide & wear plate texture
-      const mat = isBase 
-        ? this.matSanyRedGloss 
-        : (i % 2 === 0 ? this.matSanyRedPlain : this.matDarkMetal);
+      // Realistic high-resolution painted SANY boom texture for all sections with welded seams and scales
+      const mat = (this.matBoomSections && this.matBoomSections[i]) 
+        ? this.matBoomSections[i] 
+        : this.matSanyRedGloss;
 
       const secMesh = new THREE.Mesh(secGeo, mat);
       secMesh.castShadow = true;
@@ -737,6 +759,14 @@ export class Crane3dVisualizerComponent implements OnInit, OnChanges, OnDestroy 
 
       secMesh.position.set(0, 0, zOffset);
       this.boomSectionsGroup.add(secMesh);
+
+      // Add dark wear pad collar ring at the tip opening of the outer sections
+      if (i < numSections - 1) {
+        const collarGeo = new THREE.BoxGeometry(width + 0.06, height + 0.06, 0.45);
+        const collarMesh = new THREE.Mesh(collarGeo, this.matChassisCharcoal);
+        collarMesh.position.set(0, 0, (i === 0 ? baseLength : (baseLength * 0.32) + (i * extensionDelta) + sectionLength) - 0.22);
+        this.boomSectionsGroup.add(collarMesh);
+      }
     }
 
     // Left and Right SANY Branding Badges along the base boom
